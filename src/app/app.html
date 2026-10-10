@@ -1,1 +1,24 @@
+<h1>RAKSUL'S Work Sample</h1>
+<app-paper-size-selector [value]="store.paperSize()" (apply)="store.apply($event)" />
+    @if (store.error(); as error) {
+      <div class="status status--error" role="alert">
+        <p>{{ error }}</p>
+      </div>
+    } @else if (store.table(); as table) {
+      <div class="table-area" [class.table-area--loading]="store.loading()">
+        <app-price-table
+          [table]="table"
+          [selected]="store.selected()"
+          [expanded]="store.expanded()"
+          (cellSelected)="store.select($event)"
+          (expandedChange)="store.setExpanded($event)"
+        />
+      </div>
+    } @else {
+      <div class="status" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>Loading prices…</p>
+      </div>
+    }
+
 <router-outlet />

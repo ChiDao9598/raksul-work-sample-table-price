@@ -1,0 +1,14 @@
+<form (submit)="onSubmit($event)">
+    <label for="">Select Paper Size</label>
+
+    <div class="">
+        <select name="pagerSize" id="paper-size" (change)="onChange($event)">
+            @for(size of sizes; track size) {
+                <option [value]="size" [selected]="size === draft()"> {{size}} </option>
+            }
+        </select>
+        
+    </div>
+
+    <button>Apply</button>
+</form>

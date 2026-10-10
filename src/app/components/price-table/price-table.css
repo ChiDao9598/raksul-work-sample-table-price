@@ -1,0 +1,19 @@
+.row--hovered, .col--hovered {
+    background: lightblue;
+}
+.cell-hovered {
+    background: blue;
+}
+.cell-button {
+    background: transparent;
+}
+.cell-hovered .cell-button {
+    color: white
+}
+.cell-selected {
+    background: darkblue;
+}
+.cell-selected .cell-button {
+    color: white;
+    font-weight: bold;
+}

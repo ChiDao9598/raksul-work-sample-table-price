@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from "@angular/core";
 import { PriceApiService } from "../apis/price-api.service";
-import { catchError, map, Subject, switchMap, tap } from "rxjs";
+import { catchError, map, Observable, of, Subject, switchMap, tap } from "rxjs";
 import { CellRef, PaperSize, PriceTable } from "../../models/price.model";
 import { apply } from "@angular/forms/signals";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
@@ -10,6 +10,7 @@ import { buildPriceTable } from "../../utils/build-price-table";
 export class PriceTableStore {
     private readonly api = inject(PriceApiService);
     private readonly $apply = new Subject<PaperSize>();
+    private readonly cache = new Map<PaperSize, PriceTable>();
 
     readonly paperSize = signal<PaperSize>('A4');
     readonly table = signal<PriceTable | null>(null);
@@ -37,12 +38,7 @@ export class PriceTableStore {
                 this.loading.set(true);
                 this.error.set(null);
             }),
-            switchMap(size => this.api.getPrices(size).pipe(
-                map(buildPriceTable),
-                catchError(() => { this.error.set('Fail to load prices'); 
-                    return []; })
-                )
-            ),
+            switchMap(size => this.fetchTable(size)),
             takeUntilDestroyed(),
         ).subscribe( table => {
             this.table.set(table);
@@ -63,5 +59,25 @@ export class PriceTableStore {
 
     showMore() {
         this.expanded.set(true);
+    }
+
+    setExpanded(expanded: boolean): void {
+        this.expanded.set(expanded);
+    }
+
+    private fetchTable(size: PaperSize): Observable<PriceTable | null> {
+        const cached = this.cache.get(size);
+        if (cached) {
+            return of(cached);
+        }
+
+        return this.api.getPrices(size).pipe(
+            map(buildPriceTable),
+            tap((table) => this.cache.set(size, table)),
+            catchError(() => {
+                this.error.set(`Could not load prices for ${size}. Please try again.`);
+                return of(null);
+            }),
+        );
     }
 }
