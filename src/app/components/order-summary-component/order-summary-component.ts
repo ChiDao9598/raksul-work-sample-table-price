@@ -1,8 +1,9 @@
 import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
 import { CellRef, PaperSize } from '../../models/price.model';
+import { FormatPricePipe } from '../../pipes/format-price-pipe';
 
 @Component({
-  imports: [],
+  imports: [FormatPricePipe],
   selector: 'app-order-summary-component',
   styleUrl: './order-summary-component.css',
   templateUrl: './order-summary-component.html',

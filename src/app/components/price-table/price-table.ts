@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { CellRef, INIT_VISIBLE_ROWS, PriceTable } from '../../models/price.model';
 import { getCellPrice } from '../../utils/build-price-table';
+import { formatPrice } from '../../utils/format-price';
+import { FormatPricePipe } from '../../pipes/format-price-pipe';
 
 @Component({
-  imports: [],
+  imports: [FormatPricePipe],
   selector: 'app-price-table',
   styleUrl: './price-table.css',
   templateUrl: './price-table.html',

@@ -37,7 +37,7 @@
                       (focus)="setHover(qty, day)"
                       (blur)="clearHover()"
                     >
-                      {{ price }} VND
+                      {{ price | formatPrice }} VND
                     </button>
                 } @else {
                     <span class="cell-empty">—</span>

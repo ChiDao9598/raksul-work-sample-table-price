@@ -3,7 +3,7 @@
         Order Price:
         <strong>
             @if(hasSelection()){
-                VND {{price()}}
+                VND {{price() | formatPrice}}
             } @else {
                 -
             }
