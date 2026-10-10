@@ -4,7 +4,7 @@
     <div class="">
         <select name="pagerSize" id="paper-size" (change)="onChange($event)">
             @for(size of sizes; track size) {
-                <option [value]="size" [selected]="size === draft()"> {{size}} </option>
+                <option [value]="size" [selected]="size === paperSizeSelected()"> {{size}} </option>
             }
         </select>
         

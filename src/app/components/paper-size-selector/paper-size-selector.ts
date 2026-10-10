@@ -15,16 +15,16 @@ export class PaperSizeSelector {
   protected readonly sizes = PAPER_SIZES;
 
   // Local selection, reset whenever the values are appplied changes from outside
-  protected readonly draft = linkedSignal(() => this.value());
-  protected readonly hasPendingChange = computed(() => this.draft() !== this.value());
+  protected readonly paperSizeSelected = linkedSignal(() => this.value());
+  protected readonly hasPendingChange = computed(() => this.paperSizeSelected() !== this.value());
 
 
   protected onChange(event: Event): void {
-    this.draft.set((event.target as HTMLSelectElement).value as PaperSize)
+    this.paperSizeSelected.set((event.target as HTMLSelectElement).value as PaperSize)
   }
 
   protected onSubmit(event: Event): void {
     event.preventDefault();
-    this.apply.emit(this.draft());
+    this.apply.emit(this.paperSizeSelected());
   }
 }

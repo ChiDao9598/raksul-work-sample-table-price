@@ -65,7 +65,7 @@ export class PriceTableStore {
         this.expanded.set(expanded);
     }
 
-    private fetchTable(size: PaperSize): Observable<PriceTable | null> {
+    fetchTable(size: PaperSize): Observable<PriceTable | null> {
         const cached = this.cache.get(size);
         if (cached) {
             return of(cached);
