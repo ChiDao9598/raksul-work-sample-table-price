@@ -3,7 +3,7 @@ export type PaperSize = 'A4' | 'A5' | 'B4' | 'B5'
 export interface PriceItem {
     business_day: number;
     price: number;
-    quantify: number;
+    quantity: number;
 }
 
 export interface PriceResponse {
@@ -14,7 +14,7 @@ export interface PriceResponse {
 export interface PriceTable {
     quantities: number[]; //row headers
     businessDays: number[]; // column headers
-    cells: Map<string, number>; //key: $quantity * $businessDay => price
+    cells: Map<string, number>; //key: $quantity - $businessDay => price
 
 }
 
