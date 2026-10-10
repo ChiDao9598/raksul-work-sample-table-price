@@ -13,8 +13,9 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 3. [Getting Started](#3-getting-started)
 4. [Project Structure](#4-project-structure)
 5. [Task 1 – Analysis & Implementation](#5-task-1--analysis--implementation)
-6. [Assumptions](#6-assumptions)
-7. [Possible Improvements](#7-possible-improvements)
+6. [Task 2 – Number Formatting](#6-task-2--number-formatting)
+7. [Assumptions](#7-assumptions)
+8. [Possible Improvements](#8-possible-improvements)
 
 ---
 
@@ -34,6 +35,13 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 | 1 | **Cell selection**: the clicked cell is highlighted and its price is shown as **Order Price** | ✅ |
 | 2 | **See more**: 5 quantity rows initially, all rows after clicking "See more" ("See less" collapses again) | ✅ |
 | 3 | **Hover**: the hovered cell is highlighted, and the cells in its row and column are weakly highlighted | ✅ |
+
+### Task 2 – Number formatting
+
+| Feature | Status |
+|---|---|
+| `formatPrice()` inserts a comma every 3 digits without `toLocaleString()` or `Intl.NumberFormat()` | ✅ |
+| Every price in the table and the Order Price is displayed with this formatting | ✅ |
 
 ### Extras
 
@@ -89,6 +97,7 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 | No utility libraries (jQuery, Lodash, …) | Only Angular packages and RxJS, which is a core Angular dependency |
 | No CSS frameworks (Bootstrap, …) | Hand-written CSS |
 | No UI component libraries (Angular Material, …) | Native `<select>`, `<table>` and `<button>` elements |
+| No `toLocaleString()` / `Intl.NumberFormat()` | Custom `formatPrice()` (see [Task 2](#6-task-2--number-formatting)) |
 | Latest Chrome / Firefox | Uses only standard modern web APIs |
 
 ---
@@ -195,10 +204,10 @@ raksul-work-sample-table-price/
         │   ├── price-table/             # table, hover, selection, See more
         │   └── order-summary-component/ # Order Price
         ├── pipes/
-        │   └── format-price-pipe.ts     # displays prices in templates
+        │   └── format-price-pipe.ts     # Task 2: template wrapper for formatPrice
         └── utils/
             ├── build-price-table.ts     # API response -> table structure
-            └── format-price.ts
+            └── format-price.ts          # Task 2: comma every 3 digits
 ```
 
 ---
@@ -484,15 +493,87 @@ The screenshot shows the A4 table after clicking "See more" (all 10 quantity row
 
 ---
 
-## 6. Assumptions
+## 6. Task 2 – Number Formatting
+
+### 6.1 Requirement
+
+Display every price with a comma every 3 digits, counted from the right (`1000` → `1,000`, `1234567` → `1,234,567`), **without** using `toLocaleString()` or `Intl.NumberFormat()`. Prices are natural numbers.
+
+### 6.2 Implementation
+
+`src/app/utils/format-price.ts`:
+
+```ts
+export function formatPrice(value: number): string {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new RangeError(`FormatPrice expects a positive integer, received: ${value}`);
+  }
+
+  const digits = String(value);
+  let rs = '';
+
+  for (let i = 0; i < digits.length; i++) {
+    const remaining = digits.length - i;
+    rs += digits[i];
+    if (remaining > 1 && (remaining - 1) % 3 === 0) {
+      rs += ',';
+    }
+  }
+  return rs;
+}
+```
+
+**How it works.** The number is converted to a string and read from left to right. After each digit, `remaining - 1` is the number of digits still to come. When that number is a non-zero multiple of 3, a comma is added.
+
+Example for `1234567` (7 digits):
+
+| Digit | `1` | `2` | `3` | `4` | `5` | `6` | `7` |
+|---|---|---|---|---|---|---|---|
+| Digits after it | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+| Comma after it? | ✅ | | | ✅ | | | |
+
+Result: `1,234,567`.
+
+**Input validation.** Anything that is not a natural number is rejected with a `RangeError`: `0`, negative numbers, decimals, `NaN`, `Infinity`, and values above `Number.MAX_SAFE_INTEGER` (beyond that limit, JavaScript can no longer represent every digit exactly).
+
+| Input | Output |
+|---|---|
+| `1` | `"1"` |
+| `999` | `"999"` |
+| `1000` | `"1,000"` |
+| `1568` | `"1,568"` |
+| `1234567` | `"1,234,567"` |
+| `0`, `-1`, `1.5`, `NaN` | throws `RangeError` |
+
+### 6.3 Using it in templates
+
+`FormatPricePipe` (`src/app/pipes/format-price-pipe.ts`) wraps the function so templates can use `{{ price | formatPrice }}`. It returns `"-"` for `null`/`undefined` and for values that `formatPrice` rejects, so one bad value cannot break the page.
+
+The pipe is used in two places:
+
+| Where | Template | Example |
+|---|---|---|
+| Table cell (`PriceTableComponent`) | `{{ price \| formatPrice }} VND` | `1,820 VND` |
+| Order Price (`OrderSummaryComponent`) | `VND {{ price() \| formatPrice }}` | `VND 1,820` |
+
+### 6.4 Result
+
+![Task 2 result: prices formatted with a comma every 3 digits](task-2.png)
+
+Every price in the table and the Order Price now has a comma every 3 digits (for example `1,820 VND` and "Order Price: VND 1,820").
+
+---
+
+## 7. Assumptions
 
 - The paper size is applied only when **Apply** is clicked, as in the wireframe.
 - Changing the paper size clears the selection and collapses the table, because the selected price belongs to the previous size.
 - Prices do not change during a session, so caching each size's response is safe.
+- Prices are natural numbers, as stated in Task 2, so `formatPrice` does not handle decimals.
 
 ---
 
-## 7. Possible Improvements
+## 8. Possible Improvements
 
 - **Cart** button in the order summary, as shown in the wireframe.
 - Show the selected details next to the order price (e.g. "A4 · 200 pcs · 4 business days").
@@ -501,6 +582,7 @@ The screenshot shows the A4 table after clicking "See more" (all 10 quantity row
 - A **Retry** button on the error message.
 - Accessibility: `<caption>`, `scope="col"` on column headers, `aria-pressed` on the selected price, `aria-live` on the order price.
 - Responsive layout for narrow screens.
-- Unit, component and integration tests (currently only the generated "should create" specs exist).
+- Unit, component and integration tests (currently only the generated "should create" specs exist), including unit tests for `formatPrice` and a check that `toLocaleString()` / `Intl.NumberFormat()` are never called.
+- Use the same currency format in the table and the Order Price (`1,820 VND` vs `VND 1,820`).
 - Arrow-key navigation between cells (roving `tabindex`).
 - Keep the paper size and selection in the URL so they survive a reload and can be shared.
