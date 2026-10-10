@@ -4,10 +4,11 @@ import { PaperSizeSelector } from "./components/paper-size-selector/paper-size-s
 import { PriceTableStore } from './services/stores/price-table.store';
 import { PAPER_SIZE_DEFAULT } from './models/price.model';
 import { PriceTableComponent } from "./components/price-table/price-table";
+import { OrderSummaryComponent } from './components/order-summary-component/order-summary-component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, PaperSizeSelector, PriceTableComponent],
+  imports: [RouterOutlet, PaperSizeSelector, PriceTableComponent, OrderSummaryComponent],
   templateUrl: './app.html',
   styleUrl: './app.css',
   changeDetection: ChangeDetectionStrategy.OnPush
