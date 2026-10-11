@@ -14,8 +14,9 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 4. [Project Structure](#4-project-structure)
 5. [Task 1 – Analysis & Implementation](#5-task-1--analysis--implementation)
 6. [Task 2 – Number Formatting](#6-task-2--number-formatting)
-7. [Assumptions](#7-assumptions)
-8. [Possible Improvements](#8-possible-improvements)
+7. [Final Result](#7-final-result)
+8. [Assumptions](#8-assumptions)
+9. [Possible Improvements](#9-possible-improvements)
 
 ---
 
@@ -34,7 +35,7 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 |---|---|---|
 | 1 | **Cell selection**: the clicked cell is highlighted and its price is shown as **Order Price** | ✅ |
 | 2 | **See more**: 5 quantity rows initially, all rows after clicking "See more" ("See less" collapses again) | ✅ |
-| 3 | **Hover**: the hovered cell is highlighted, and the cells in its row and column are weakly highlighted | ✅ |
+| 3 | **Hover**: the hovered cell is highlighted, and its row and column (including the quantity and business-day headers) are weakly highlighted | ✅ |
 
 ### Task 2 – Number formatting
 
@@ -145,6 +146,8 @@ npm test                     # watch mode
 npm test -- --watch=false    # single run (CI)
 ```
 
+Expected result: **9 test files, 93 tests passed**. HTTP calls are mocked, so the tests work offline. See [Testing](#510-testing) for what is covered.
+
 ### Production build
 
 ```bash
@@ -202,13 +205,17 @@ raksul-work-sample-table-price/
         ├── components/
         │   ├── paper-size-selector/     # dropdown + Apply
         │   ├── price-table/             # table, hover, selection, See more
-        │   └── order-summary-component/ # Order Price
+        │   └── order-summary-component/ # Order Price + Cart
         ├── pipes/
         │   └── format-price-pipe.ts     # Task 2: template wrapper for formatPrice
-        └── utils/
-            ├── build-price-table.ts     # API response -> table structure
-            └── format-price.ts          # Task 2: comma every 3 digits
+        ├── utils/
+        │   ├── build-price-table.ts     # API response -> table structure
+        │   └── format-price.ts          # Task 2: comma every 3 digits
+        └── testing/
+            └── price-response.mock.ts   # test data with the real API shape (10 × 5)
 ```
+
+Every `.ts` file with logic has a `.spec.ts` file next to it.
 
 ---
 
@@ -424,11 +431,11 @@ Each price is a `<button>` inside its `<td>`, so it can be focused and selected 
 readonly selectedPrice = computed(() => {
   const t = this.table();
   const s = this.selected();
-  return t && s ? t.cells.get(`${s.quantity}-${s.businessDay}`) ?? null : null;
+  return t && s ? getCellPrice(t, s.quantity, s.businessDay) : null;
 });
 ```
 
-`OrderSummaryComponent` shows "Order Price: VND {price}", or "-" when nothing is selected.
+`OrderSummaryComponent` shows "Order Price: VND {price}", or "-" when nothing is selected. The **Cart** button from the wireframe is disabled until a price is selected; its behavior is not specified, so it does nothing further.
 
 #### R4 – See more
 
@@ -443,7 +450,7 @@ The button toggles between "See more" and "See less" and exposes `aria-expanded`
 
 #### R5 – Hover highlighting
 
-A local `hovered` signal is set on `mouseenter` of a cell and on `focus` of its button, so keyboard users get the same feedback. It is cleared on `blur` of the button. Every cell compares its own coordinates with the hovered one:
+A local `hovered` signal is set on `mouseenter` of a cell and on `focus` of its button, so keyboard users get the same feedback. It is cleared on `mouseleave` of the whole table (so moving between cells does not flicker) and on `blur` of the button. Every cell compares its own coordinates with the hovered one, and the quantity and business-day headers get `.header--hovered` the same way:
 
 ```html
 <td
@@ -490,6 +497,24 @@ The screenshot shows the A4 table after clicking "See more" (all 10 quantity row
 
 - **Selected cell** (dark blue): 500 pcs, 2 days. Its price is shown as "Order Price: VND 1970".
 - **Hovered cell** (blue): 300 pcs, 3 days. The other cells in its row and column are weakly highlighted (light blue).
+
+### 5.10 Testing
+
+Tests are organized by layer. HTTP calls are mocked with `HttpTestingController`, so the tests are fast, deterministic and work offline. `testing/price-response.mock.ts` creates responses with the same shape as the real API (10 quantities × 5 business days).
+
+| Level | Spec file | What it covers |
+|---|---|---|
+| Unit | `utils/build-price-table.spec.ts` | Rows/columns from the data, the sample response from the API spec, sorting, missing cells, invalid items, empty response |
+| Unit | `services/apis/price-api.spec.ts` | `GET` method, HTTPS URL, `paper_size` parameter, response body |
+| Unit | `services/stores/price-table.store.spec.ts` | Initial state, loading state, **request cancellation** (`switchMap`), cache, reset on size change, error and retry, `selectedPrice` |
+| Component | `components/price-table/price-table.spec.ts` | **R1** headers and formatted prices, "—" for missing cells; **R3** click output and single selected cell; **R4** 5 → 10 rows, See more / See less, hidden button; **R5** hovered cell, weak row/column/headers, mouse leave, keyboard focus |
+| Component | `components/paper-size-selector/paper-size-selector.spec.ts` | **R2** options A4–B5, no output on change, output on Apply, pending-change hint |
+| Component | `components/order-summary-component/order-summary-component.spec.ts` | "-" and disabled Cart before selection; formatted price after selection |
+| Integration | `app.spec.ts` | Full user flow with a mocked backend: loading → A4 table → select a cell → See more → Apply B5 → new prices, selection cleared; error message |
+
+The Task 2 tests are described in [6.5 Unit tests](#65-unit-tests).
+
+Result: **9 test files, 93 tests, all passing**.
 
 ---
 
@@ -562,9 +587,38 @@ The pipe is used in two places:
 
 Every price in the table and the Order Price now has a comma every 3 digits (for example `1,820 VND` and "Order Price: VND 1,820").
 
+### 6.5 Unit tests
+
+`src/app/utils/format-price.spec.ts`:
+
+| Group | Cases |
+|---|---|
+| Comma placement | 1 to 3 digits (`1`, `99`, `999` → no comma), each digit-count boundary (`1000`, `10000`, `100000`, `1000000`, `1000000000`), mixed digits (`1568`, `1234567`, `123456789`), and `Number.MAX_SAFE_INTEGER` → `9,007,199,254,740,991` |
+| Invalid input | `0`, negative numbers, decimals, `NaN`, `±Infinity`, `MAX_SAFE_INTEGER + 1` all throw `RangeError`; the message includes the received value |
+| Forbidden APIs | Spies on `Number.prototype.toLocaleString` and `Intl.NumberFormat` prove that neither is ever called |
+
+`src/app/pipes/format-price-pipe.spec.ts` checks that the pipe formats valid prices and returns "-" for `null`, `undefined` and invalid values instead of throwing.
+
 ---
 
-## 7. Assumptions
+## 7. Final Result
+
+The screenshots in [5.9](#59-result) and [6.4](#64-result) record the progress after each task. This is the final version of the app, with Task 1 and Task 2 complete and the styling finished.
+
+![Final result: A4 price table with a selected price, hover highlighting and the order price](final-result.png)
+
+| Requirement | Shown in the screenshot |
+|---|---|
+| **1-a #1** Quantity × business days table | Quantities 10–400 as rows, "1 day" to "5 days" as columns |
+| **1-a #2** Paper size selection | "A4" applied with **Apply**; the panel title shows "Page Size Selected: A4" |
+| **1-b #1** Cell selection | 100 pcs × 2 days is selected (blue), and "Order Price: VND 1,650" is shown next to the **Cart** button |
+| **1-b #2** See more | 5 quantity rows are shown, with the **See more** button below the table |
+| **1-b #3** Hover | 300 pcs × 3 days is hovered (dark grey). Its row and column, including the "300" and "3 days" headers, are weakly highlighted |
+| **Task 2** Number formatting | Every price has a comma every 3 digits (`1,568`, `1,820`, …) |
+
+---
+
+## 8. Assumptions
 
 - The paper size is applied only when **Apply** is clicked, as in the wireframe.
 - Changing the paper size clears the selection and collapses the table, because the selected price belongs to the previous size.
@@ -573,16 +627,14 @@ Every price in the table and the Order Price now has a comma every 3 digits (for
 
 ---
 
-## 8. Possible Improvements
+## 9. Possible Improvements
 
-- **Cart** button in the order summary, as shown in the wireframe.
 - Show the selected details next to the order price (e.g. "A4 · 200 pcs · 4 business days").
-- Highlight the row and column **headers** on hover, and clear the hover when the mouse leaves the table.
 - Dim the previous table while the next one is loading (the `table-area--loading` class is already applied but has no style yet).
 - A **Retry** button on the error message.
-- Accessibility: `<caption>`, `scope="col"` on column headers, `aria-pressed` on the selected price, `aria-live` on the order price.
+- Accessibility: `<caption>`, `aria-pressed` on the selected price, `aria-live` on the order price.
 - Responsive layout for narrow screens.
-- Unit, component and integration tests (currently only the generated "should create" specs exist), including unit tests for `formatPrice` and a check that `toLocaleString()` / `Intl.NumberFormat()` are never called.
+- End-to-end tests (for example, Playwright) against the real API in Chrome and Firefox.
 - Use the same currency format in the table and the Order Price (`1,820 VND` vs `VND 1,820`).
 - Arrow-key navigation between cells (roving `tabindex`).
 - Keep the paper size and selection in the URL so they survive a reload and can be shared.

@@ -1,7 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { CellRef, INIT_VISIBLE_ROWS, PriceTable } from '../../models/price.model';
 import { getCellPrice } from '../../utils/build-price-table';
-import { formatPrice } from '../../utils/format-price';
 import { FormatPricePipe } from '../../pipes/format-price-pipe';
 
 @Component({
@@ -12,7 +11,6 @@ import { FormatPricePipe } from '../../pipes/format-price-pipe';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PriceTableComponent {
-
   ngOnInit(): void {
     // Log table to debug
     console.log(this.table())

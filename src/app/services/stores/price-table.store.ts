@@ -2,9 +2,8 @@ import { Injectable, computed, inject, signal } from "@angular/core";
 import { PriceApiService } from "../apis/price-api.service";
 import { catchError, map, Observable, of, Subject, switchMap, tap } from "rxjs";
 import { CellRef, PaperSize, PriceTable } from "../../models/price.model";
-import { apply } from "@angular/forms/signals";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { buildPriceTable } from "../../utils/build-price-table";
+import { buildPriceTable, getCellPrice } from "../../utils/build-price-table";
 
 @Injectable({ providedIn: 'root' })
 export class PriceTableStore {
@@ -19,17 +18,11 @@ export class PriceTableStore {
     readonly selected = signal<CellRef | null>(null);
     readonly expanded = signal<boolean>(false);
 
-    readonly visibleQuantities = computed(() => {
-        const q = this.table()?.quantities ?? [];
-        return this.expanded() ? q : q.slice(0, 5);
-    });
-
+    // Price of the selected cell, or null when nothing is selected.
     readonly selectedPrice = computed(() => {
         const t = this.table();
         const s = this.selected();
-        return t && s ? // if table and selection exist
-        t.cells.get(`${s.quantity}-${s.businessDay}`) // return the cell key if it exists
-        ?? null : null; // if key not exist, return null. If no table or selection, return null.
+        return t && s ? getCellPrice(t, s.quantity, s.businessDay) : null;
     })
 
     constructor() {
@@ -55,10 +48,6 @@ export class PriceTableStore {
 
     select(cellRef: CellRef | null) {
         this.selected.set(cellRef);
-    }
-
-    showMore() {
-        this.expanded.set(true);
     }
 
     setExpanded(expanded: boolean): void {

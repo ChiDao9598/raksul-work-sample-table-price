@@ -6,8 +6,8 @@
           <span class="corner-day">Business Days</span>
           <span class="corner-qty">Quantity</span>
         </th>
-        @for (day of this.table().businessDays; track day) {
-          <th>
+        @for (day of table().businessDays; track day) {
+          <th scope="col" [class.header--hovered]="hovered()?.businessDay === day">
             {{ dayLabel(day) }}
           </th>
         }
@@ -16,7 +16,7 @@
     <tbody>
       @for (qty of visibleQuantities(); track qty) {
         <tr>
-          <th scope="row" class="row-header">
+          <th scope="row" class="row-header" [class.header--hovered]="hovered()?.quantity === qty">
             {{ qty }}
           </th>
 
