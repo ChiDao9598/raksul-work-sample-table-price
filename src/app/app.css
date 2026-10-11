@@ -1,0 +1,28 @@
+.layout {
+    margin: auto;
+    max-width: 1920px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
+}
+.wrap-table-price {
+    display: flex;
+    gap: 24px;
+}
+.wrap-table-price, .wrap-order-price {
+    width: 1024px;
+}
+.wrap-order-price {
+    display: flex;
+    align-items: center;
+    justify-content: end;    
+}
+.wrap-table-price .wrapper, .wrap-order-price .wrapper {
+    background: #e8e8e8;
+    padding: 24px;
+    border-radius: 8px;
+}
+.wrap-order-price .wrapper {
+    width: 100%;
+}

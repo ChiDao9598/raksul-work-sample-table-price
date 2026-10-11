@@ -1,14 +1,18 @@
-<form (submit)="onSubmit($event)">
-    <label for="">Select Paper Size</label>
+<form class="selector-paperSize-form" (submit)="onSubmit($event)">
+    <label class="form-title" for="paper-size">Select Paper Size</label>
 
-    <div class="">
+    <div class="selector-wrapper">
         <select name="pagerSize" id="paper-size" (change)="onChange($event)">
             @for(size of sizes; track size) {
                 <option [value]="size" [selected]="size === paperSizeSelected()"> {{size}} </option>
             }
         </select>
-        
     </div>
+    <p class="hint">
+        @if(hasPendingChange()) {
+            Click Apply to show {{ paperSizeSelected() }} prices
+        }
+    </p>
 
-    <button>Apply</button>
+    <button type="submit">Apply</button>
 </form>

@@ -1,61 +1,65 @@
-<table>
-  <thead>
-    <tr>
-      <th>
-        <span>Business Days</span>
-        <span>Quantity</span>
-      </th>
-      @for (day of this.table().businessDays; track day) {
-        <th>
-          {{ dayLabel(day) }}
-        </th>
-      }
-    </tr>
-  </thead>
-  <tbody>
-    @for (qty of visibleQuantities(); track qty) {
+<div class="price-table-component">
+  <table (mouseleave)="clearHover()">
+    <thead>
       <tr>
-        <th scope="row" class="row-header">
-          {{ qty }}
+        <th class="corner">
+          <span class="corner-day">Business Days</span>
+          <span class="corner-qty">Quantity</span>
         </th>
-
-        @for (day of table().businessDays; track day) {
-          @let price = priceOf(qty, day);
-            <td 
-                class="cell"
-                [class.row--hovered]="hovered()?.quantity === qty"
-                [class.col--hovered]="hovered()?.businessDay === day"
-                [class.cell-selected]="isSelected(qty, day)"
-                [class.cell-hovered]="isHovered(qty, day)"
-                (mouseenter)="setHover(qty, day)"
-            >
-                @if (price !== null) {
-                    <button 
-                      type="button" 
-                      class="cell-button"
-                      (click)="select(qty, day)"
-                      (focus)="setHover(qty, day)"
-                      (blur)="clearHover()"
-                    >
-                      {{ price | formatPrice }} VND
-                    </button>
-                } @else {
-                    <span class="cell-empty">—</span>
-                }
-            </td>
+        @for (day of this.table().businessDays; track day) {
+          <th>
+            {{ dayLabel(day) }}
+          </th>
         }
       </tr>
-    }
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      @for (qty of visibleQuantities(); track qty) {
+        <tr>
+          <th scope="row" class="row-header">
+            {{ qty }}
+          </th>
 
-@if (canExpand()) {
-  <button
-    type="button"
-    class="see-more"
-    [attr.aria-expanded]="expanded()"
-    (click)="toggleExpand()"
-  >
-    {{ expanded() ? 'See less' : 'See more' }}
-  </button>
-}
+          @for (day of table().businessDays; track day) {
+            @let price = priceOf(qty, day);
+            <td
+              class="cell"
+              [class.row--hovered]="hovered()?.quantity === qty"
+              [class.col--hovered]="hovered()?.businessDay === day"
+              [class.cell-selected]="isSelected(qty, day)"
+              [class.cell-hovered]="isHovered(qty, day)"
+              (mouseenter)="setHover(qty, day)"
+            >
+              @if (price !== null) {
+                <button
+                  type="button"
+                  class="cell-button"
+                  (click)="select(qty, day)"
+                  (focus)="setHover(qty, day)"
+                  (blur)="clearHover()"
+                >
+                  {{ price | formatPrice }} VND
+                </button>
+              } @else {
+                <span class="cell-empty">—</span>
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  @if (canExpand()) {
+    <div class="toggle-expand">
+      <button
+        type="button"
+        class="see-more"
+        [attr.aria-expanded]="expanded()"
+        (click)="toggleExpand()"
+      >
+        {{ expanded() ? 'See less' : 'See more' }}
+      </button>
+    </div>
+  }
+</div>

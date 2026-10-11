@@ -1,0 +1,54 @@
+:host {
+  display: block;
+  height: 100%;
+}
+.form-title {
+    font-weight: bold;
+    font-size: 24px;
+}
+.selector-paperSize-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+.selector-wrapper {
+  position: relative;
+}
+
+.selector-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 9px solid var(--color-text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+select {
+  width: 100%;
+  padding: 14px 50px 14px 14px;
+  font: inherit;
+  font-size: 1.125rem;
+  color: black;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  appearance: none;
+  cursor: pointer;
+}
+.hint {
+  min-height: 1.4em;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+button {
+  align-self: flex-end;
+  margin-top: auto;
+  min-width: 112px;
+  background: var(--color-surface);
+}

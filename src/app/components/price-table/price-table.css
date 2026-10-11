@@ -1,19 +1,64 @@
-.row--hovered, .col--hovered {
-    background: lightblue;
+.price-table-component {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
-.cell-hovered {
-    background: blue;
+table {
+    padding: 16px;
+}
+th,
+td {
+  text-align: center;
+}
+th {
+  padding: 10px 12px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  background: var(--color-header);
+  white-space: nowrap;
+}
+.corner {
+  position: relative;
+  min-width: 110px;
+  height: 48px;
+  padding: 0;
+  background: linear-gradient(
+    to top right,
+    var(--color-header) calc(50% - 0.5px),
+    var(--color-border) 50%,
+    var(--color-header) calc(50% + 0.5px)
+  );
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.corner-day {
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-size: 12px;
+}
+.corner-qty {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    font-size: 12px;
 }
 .cell-button {
-    background: transparent;
+    background: white;
+}
+.row--hovered .cell-button, .col--hovered .cell-button{
+    background: var(--color-hover-col-row);
 }
 .cell-hovered .cell-button {
-    color: white
-}
-.cell-selected {
-    background: darkblue;
+    background: var(--color-hover);
+    color: var(--color-surface);
 }
 .cell-selected .cell-button {
-    color: white;
+    background: var(--color-selected);
+    color: var(--color-surface);
     font-weight: bold;
+}
+button.see-more {
+    width: 150px;
 }
