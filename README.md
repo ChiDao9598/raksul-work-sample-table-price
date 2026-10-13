@@ -15,8 +15,9 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 5. [Task 1 – Analysis & Implementation](#5-task-1--analysis--implementation)
 6. [Task 2 – Number Formatting](#6-task-2--number-formatting)
 7. [Final Result](#7-final-result)
-8. [Assumptions](#8-assumptions)
-9. [Possible Improvements](#9-possible-improvements)
+8. [Additional Features](#8-additional-features)
+9. [Assumptions](#9-assumptions)
+10. [Possible Improvements](#10-possible-improvements)
 
 ---
 
@@ -48,8 +49,8 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 
 - **Race-condition safe loading.** Applying a new size cancels the request still in flight (`switchMap`).
 - **Per-size response cache.** Switching back to a size already loaded does not call the API again.
-- **Loading and error states.** A "Loading prices…" message on the first load, and an error message if the request fails.
-- **Keyboard support.** Prices are `<button>` elements, so they can be selected with the keyboard. Focusing a price applies the same highlighting as hovering it.
+- **Loading and error states.** From the moment **Apply** is clicked until the API responds, the table is replaced by a spinner and "Loading A5 prices, please wait…". An error message is shown if the request fails. See [8.1](#81-loading-message-after-apply).
+- **Responsive layout.** Selector 30% | table 70% on desktop; one column (selector → table → order price) on tablet and mobile. See [8.2](#82-responsive-layout).- **Keyboard support.** Prices are `<button>` elements, so they can be selected with the keyboard. Focusing a price applies the same highlighting as hovering it.
 
 ---
 
@@ -97,7 +98,7 @@ Built with **Angular 22** (standalone components, signals, zoneless change detec
 | Use a JavaScript framework | Angular |
 | No utility libraries (jQuery, Lodash, …) | Only Angular packages and RxJS, which is a core Angular dependency |
 | No CSS frameworks (Bootstrap, …) | Hand-written CSS |
-| No UI component libraries (Angular Material, …) | Native `<select>`, `<table>` and `<button>` elements |
+| No UI component libraries (Angular Material, …) | Native `<select>`, `<table>` and `<button>` elements; the spinner is plain CSS |
 | No `toLocaleString()` / `Intl.NumberFormat()` | Custom `formatPrice()` (see [Task 2](#6-task-2--number-formatting)) |
 | Latest Chrome / Firefox | Uses only standard modern web APIs |
 
@@ -146,7 +147,7 @@ npm test                     # watch mode
 npm test -- --watch=false    # single run (CI)
 ```
 
-Expected result: **9 test files, 93 tests passed**. HTTP calls are mocked, so the tests work offline. See [Testing](#510-testing) for what is covered.
+HTTP calls are mocked, so the tests work offline. See [Testing](#510-testing) for what is covered.
 
 ### Production build
 
@@ -192,7 +193,7 @@ raksul-work-sample-table-price/
     ├── main.ts                          # bootstraps App
     ├── styles.css                       # global styles
     └── app/
-        ├── app.ts|html|css              # page layout; connects the store and the components
+        ├── app.ts|html|css              # responsive page layout; loading/error states; connects store and components
         ├── app.config.ts                # providers (HttpClient, Router)
         ├── app.routes.ts                # empty route list (scaffold)
         ├── models/
@@ -421,7 +422,7 @@ this.$apply.pipe(
 });
 ```
 
-`fetchTable` returns the cached table when one exists. Otherwise it calls the API, maps the response with `buildPriceTable`, stores the result in the cache, and turns HTTP errors into a user-facing message. The default size (A4) is applied in `App.ngOnInit`.
+`fetchTable` returns the cached table when one exists. Otherwise it calls the API, maps the response with `buildPriceTable`, stores the result in the cache, and turns HTTP errors into a user-facing message. The default size (A4) is loaded in `App.ngOnInit`.
 
 #### R3 – Cell selection
 
@@ -468,15 +469,15 @@ The CSS declares the classes from weakest to strongest (`.row--hovered`/`.col--h
 
 | Scenario | Behavior |
 |---|---|
-| First load still in progress | "Loading prices…" (`role="status"`) |
-| Switching sizes while a table is shown | The previous table stays visible until the new data arrives |
+| First load still in progress | Spinner with "Loading A4 prices, please wait…" (`role="status"`) |
+| Switching sizes while a table is shown | The previous table is hidden and the loading message is shown until the new data arrives |
 | Apply clicked several times quickly | Only the last request is kept (`switchMap`) |
 | Size already loaded before | Served from the cache, no HTTP request |
 | HTTP error | "Could not load prices for B5. Please try again." in place of the table (`role="alert"`) |
 | Missing cell in the response | Rendered as "—", not clickable |
 | Malformed item in the response | Skipped |
 | 5 rows or fewer | "See more" is hidden |
-| Selected row hidden by "See less" | The selection and order price are kept |
+| Selected row hidden by "See less" | The selection and order price are kept || Narrow screen | One-column layout; the table scrolls horizontally inside its panel ([8.2](#82-responsive-layout)) |
 
 ### 5.8 Trade-offs
 
@@ -510,11 +511,9 @@ Tests are organized by layer. HTTP calls are mocked with `HttpTestingController`
 | Component | `components/price-table/price-table.spec.ts` | **R1** headers and formatted prices, "—" for missing cells; **R3** click output and single selected cell; **R4** 5 → 10 rows, See more / See less, hidden button; **R5** hovered cell, weak row/column/headers, mouse leave, keyboard focus |
 | Component | `components/paper-size-selector/paper-size-selector.spec.ts` | **R2** options A4–B5, no output on change, output on Apply, pending-change hint |
 | Component | `components/order-summary-component/order-summary-component.spec.ts` | "-" and disabled Cart before selection; formatted price after selection |
-| Integration | `app.spec.ts` | Full user flow with a mocked backend: loading → A4 table → select a cell → See more → Apply B5 → new prices, selection cleared; error message |
+| Integration | `app.spec.ts` | Full user flow with a mocked backend: loading → A4 table → select a cell → See more → Apply B5 → new prices, selection cleared; error message; loading message after Apply ([8.1](#81-loading-message-after-apply)) |
 
 The Task 2 tests are described in [6.5 Unit tests](#65-unit-tests).
-
-Result: **9 test files, 93 tests, all passing**.
 
 ---
 
@@ -618,7 +617,85 @@ The screenshots in [5.9](#59-result) and [6.4](#64-result) record the progress a
 
 ---
 
-## 8. Assumptions
+## 8. Additional Features
+
+Improvements added after Task 1 and Task 2 were complete.
+
+### 8.1 Loading message after Apply
+
+**Requirement.** When the user clicks **Apply**, show a short message or spinner until the table data returns from the endpoint, so the user knows to wait.
+
+**Behavior.**
+
+- From the click on **Apply** until the API responds, the old table is **hidden** and the table panel shows a spinner with "Loading B5 prices, please wait…".
+- The same message is shown on the first page load (A4).
+- If Apply is clicked again while a request is in flight, the message switches to the newest size. The older request is cancelled (`switchMap`), so its data can never replace the newer one.
+- A size that is already in the cache is returned synchronously, so the message never flashes for it.
+- If the request fails, the message is replaced by the error message.
+
+**Implementation.** The store already sets `loading` to `true` in the RxJS pipeline as soon as a size is applied, and back to `false` when the response (or error) arrives. The template in `app.html` uses it to choose what the table panel shows:
+
+```html
+@if (store.error(); as error) {
+  <div class="status status--error" role="alert"><p>{{ error }}</p></div>
+} @else if (store.loading() || !store.table()) {
+  <div class="status" role="status">
+    <span class="spinner" aria-hidden="true"></span>
+    <p>Loading {{ store.paperSize() }} prices, please wait…</p>
+  </div>
+} @else if (store.table(); as table) {
+  <app-price-table [table]="table" … />
+}
+```
+
+- The spinner is a plain CSS ring (`border` + `@keyframes spin`) in the app's selected-cell color; no library is used.
+- `role="status"` makes screen readers announce the message; the spinner itself is `aria-hidden`.
+- The message area has a `min-height`, so the panel keeps roughly the size of the table instead of collapsing.
+
+**Tests** (`app.spec.ts`): message and spinner on first load; old table hidden and "Loading B5 prices…" shown after Apply until the response arrives; message for the latest size when Apply is clicked twice; no message for a cached size; message shown again when retrying after an error.
+
+### 8.2 Responsive layout
+
+**Requirement.** On mobile and tablet, show the paper size selector on top, the price table below it, and the order price at the bottom. On desktop, the selector and the table share one row (**30% / 70%**) whose width lines up with the order price bar.
+
+| Screen | Width | Layout |
+|---|---|---|
+| Desktop | ≥ 1024px | Selector 30% \| table 70% in one row; order price bar below. All sections share the same width (up to 1200px), so their edges line up |
+| Tablet | 600–1023px | One column: selector → table → order price, each full width |
+| Mobile | < 600px | One column, with tighter padding and smaller text; full-width **Apply** and **See more** buttons; the table scrolls horizontally inside its panel |
+
+```
+Desktop (≥ 1024px)                          Tablet / mobile (< 1024px)
+┌────────────┬──────────────────────────┐   ┌──────────────────────┐
+│ Selector   │ Price table              │   │ Selector             │
+│ 30%        │ 70%                      │   ├──────────────────────┤
+├────────────┴──────────────────────────┤   │ Price table          │
+│                Order price  [ Cart ]  │   ├──────────────────────┤
+└───────────────────────────────────────┘   │ Order price [ Cart ] │
+                                            └──────────────────────┘
+```
+
+**Implementation.**
+
+- **No HTML reordering was needed.** The DOM order is already selector → table → order price, which is the stacked order on small screens. Only CSS changes between breakpoints.
+- **Desktop row:** `.wrap-table-price` is a CSS Grid with `grid-template-columns: 3fr 7fr`. Below 1024px it becomes `1fr` (one column).
+- **Aligned widths:** `.layout` has `width: 100%; max-width: 1200px`, and both sections are `width: 100%`, so the top row and the order price bar always have the same edges.
+- **Table on small screens:** the `<table>` is wrapped in `.table-scroll` (`overflow-x: auto`) and has `min-width: 520px`. On a narrow phone the table scrolls sideways inside its panel instead of squashing the prices or making the whole page scroll. `min-width: 0` on the grid item lets this work inside the grid.
+- **Prices on one line:** each price button fills its cell and uses `white-space: nowrap`, so "1,568 VND" never breaks across two lines.
+- **Fluid headings:** the page title and "Page Size Selected" use `clamp()`, so they shrink smoothly on small screens.
+- **Touch-friendly:** below 600px, **Apply** and **See more** are full width, and the order price bar spreads the price and **Cart** to opposite edges.
+
+| File | Change |
+|---|---|
+| `app.css` | Grid layout, breakpoints, aligned widths, status/spinner styles |
+| `app.html` | "Page Size Selected" uses the `.table-heading` class instead of an inline style |
+| `price-table.html` / `.css` | `.table-scroll` wrapper, full-width table and buttons, smaller cells on mobile |
+| `paper-size-selector.css` | Smaller title and full-width Apply on mobile |
+| `order-summary-component.css` | Price and Cart at opposite edges on mobile |
+
+---
+
+## 9. Assumptions
 
 - The paper size is applied only when **Apply** is clicked, as in the wireframe.
 - Changing the paper size clears the selection and collapses the table, because the selected price belongs to the previous size.
@@ -627,13 +704,11 @@ The screenshots in [5.9](#59-result) and [6.4](#64-result) record the progress a
 
 ---
 
-## 9. Possible Improvements
+## 10. Possible Improvements
 
 - Show the selected details next to the order price (e.g. "A4 · 200 pcs · 4 business days").
-- Dim the previous table while the next one is loading (the `table-area--loading` class is already applied but has no style yet).
 - A **Retry** button on the error message.
 - Accessibility: `<caption>`, `aria-pressed` on the selected price, `aria-live` on the order price.
-- Responsive layout for narrow screens.
 - End-to-end tests (for example, Playwright) against the real API in Chrome and Firefox.
 - Use the same currency format in the table and the Order Price (`1,820 VND` vs `VND 1,820`).
 - Arrow-key navigation between cells (roving `tabindex`).
