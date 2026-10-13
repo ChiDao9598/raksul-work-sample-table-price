@@ -1,4 +1,5 @@
 <div class="price-table-component">
+  <div class="table-scroll">
   <table (mouseleave)="clearHover()">
     <thead>
       <tr>
@@ -16,13 +17,14 @@
     <tbody>
       @for (qty of visibleQuantities(); track qty) {
         <tr>
-          <th scope="row" class="row-header" [class.header--hovered]="hovered()?.quantity === qty">
+          <th (mouseleave)="clearHover()" scope="row" class="row-header" [class.header--hovered]="hovered()?.quantity === qty">
             {{ qty }}
           </th>
 
           @for (day of table().businessDays; track day) {
             @let price = priceOf(qty, day);
             <td
+            (mouseleave)="clearHover()"
               class="cell"
               [class.row--hovered]="hovered()?.quantity === qty"
               [class.col--hovered]="hovered()?.businessDay === day"
@@ -49,6 +51,7 @@
       }
     </tbody>
   </table>
+  </div>
 
   @if (canExpand()) {
     <div class="toggle-expand">

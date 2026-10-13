@@ -20,6 +20,14 @@ describe('App', () => {
     bodyRows()[row].querySelectorAll('td')[col].querySelector<HTMLButtonElement>('button')!;
   const orderPrice = () => el.querySelector('app-order-summary-component strong')!.textContent!.trim();
   const render = () => fixture.detectChanges();
+  const loadingMessage = () => el.querySelector('[role="status"]')?.textContent?.trim() ?? null;
+  const applySize = (size: string) => {
+    const select = el.querySelector<HTMLSelectElement>('select')!;
+    select.value = size;
+    select.dispatchEvent(new Event('change'));
+    el.querySelector<HTMLButtonElement>('app-paper-size-selector button[type="submit"]')!.click();
+    render();
+  };
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -43,13 +51,75 @@ describe('App', () => {
   });
 
   it('shows a loading message, then the A4 table', () => {
-    expect(el.querySelector('[role="status"]')!.textContent).toContain('Loading prices');
+    expect(loadingMessage()).toBe('Loading A4 prices, please wait…');
+    expect(el.querySelector('.spinner')).not.toBeNull();
 
     expectRequest('A4').flush(mockPriceResponse());
     render();
 
-    expect(el.querySelector('[role="status"]')).toBeNull();
+    expect(loadingMessage()).toBeNull();
     expect(bodyRows().length).toBe(5);
+  });
+
+  describe('loading message after Apply', () => {
+    beforeEach(() => {
+      expectRequest('A4').flush(mockPriceResponse());
+      render();
+    });
+
+    it('hides the old table and shows the message until the response arrives', () => {
+      applySize('B5');
+
+      expect(el.querySelector('table')).toBeNull();
+      expect(loadingMessage()).toBe('Loading B5 prices, please wait…');
+      expect(el.querySelector('.spinner')).not.toBeNull();
+
+      expectRequest('B5').flush(mockPriceResponse('b5', 5000));
+      render();
+
+      expect(loadingMessage()).toBeNull();
+      expect(cellButton(0, 0).textContent!.trim()).toBe('5,020 VND');
+    });
+
+    it('shows the message for the latest size when Apply is clicked again while loading', () => {
+      applySize('A5');
+      applySize('B4');
+
+      expect(loadingMessage()).toBe('Loading B4 prices, please wait…');
+
+      expectRequest('A5'); // cancelled by switchMap, never flushed
+      expectRequest('B4').flush(mockPriceResponse('b4', 4000));
+      render();
+
+      expect(loadingMessage()).toBeNull();
+      expect(cellButton(0, 0).textContent!.trim()).toBe('4,020 VND');
+    });
+
+    it('shows no message for a size that is already loaded (served from the cache)', () => {
+      applySize('B5');
+      expectRequest('B5').flush(mockPriceResponse('b5', 5000));
+      render();
+
+      applySize('A4');
+
+      expect(loadingMessage()).toBeNull();
+      expect(cellButton(0, 0).textContent!.trim()).toBe('1,020 VND');
+    });
+
+    it('shows the message again when retrying after an error', () => {
+      applySize('B5');
+      expectRequest('B5').flush('error', { status: 500, statusText: 'Server Error' });
+      render();
+      expect(el.querySelector('[role="alert"]')).not.toBeNull();
+
+      applySize('B4');
+      expect(el.querySelector('[role="alert"]')).toBeNull();
+      expect(loadingMessage()).toBe('Loading B4 prices, please wait…');
+
+      expectRequest('B4').flush(mockPriceResponse('b4'));
+      render();
+      expect(loadingMessage()).toBeNull();
+    });
   });
 
   it('selects a price, shows it as Order price, and resets after applying another size', () => {
@@ -68,10 +138,7 @@ describe('App', () => {
     expect(bodyRows().length).toBe(10);
 
     // Apply B5.
-    const select = el.querySelector<HTMLSelectElement>('select')!;
-    select.value = 'B5';
-    select.dispatchEvent(new Event('change'));
-    el.querySelector<HTMLButtonElement>('app-paper-size-selector button[type="submit"]')!.click();
+    applySize('B5');
     expectRequest('B5').flush(mockPriceResponse('b5', 5000));
     render();
 

@@ -4,3 +4,13 @@
     justify-content: end;
     gap: 2rem;
 }
+.order-price p {
+    margin: 0;
+}
+
+@media (max-width: 599px) {
+    .order-price {
+        justify-content: space-between;
+        gap: 1rem;
+    }
+}

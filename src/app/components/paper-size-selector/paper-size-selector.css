@@ -52,3 +52,12 @@ button {
   min-width: 112px;
   background: var(--color-surface);
 }
+
+@media (max-width: 599px) {
+  .form-title {
+    font-size: 1.25rem;
+  }
+  button {
+    align-self: stretch;
+  }
+}
